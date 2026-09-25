@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}K-Means Clustering | E-Commerce Customer Segmentation (R Language){% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="algo-tag tag-unsupervised"><i class="fa-solid fa-diagram-project me-1"></i> Unsupervised Learning</span>
+            <span class="badge bg-warning text-dark">R `kmeans()` Model</span>
+        </div>
+        <h3 class="fw-bold m-0 text-dark"><i class="fa-solid fa-people-group text-warning me-2"></i> E-Commerce Customer Segmentation</h3>
+        <p class="text-muted small m-0">Partition unlabelled customer behavior metrics into K distinct marketing personas via R Euclidean centroid optimization</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-dark" onclick="showRCodeModal('kmeans')">
+            <i class="fa-brands fa-r-project me-1 text-info"></i> View R Script
+        </button>
+    </div>
+</div>
+
+<!-- Controls Row -->
+<div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+    <div class="row align-items-center">
+        <div class="col-md-6">
+            <label class="form-label fw-bold d-flex justify-content-between">
+                <span>Select Number of Clusters (K):</span>
+                <span class="range-val fs-5 text-warning" id="kVal">4</span>
+            </label>
+            <input type="range" class="form-range" id="kInput" min="2" max="8" step="1" value="4" oninput="updateKMeans()">
+        </div>
+        <div class="col-md-6 d-flex align-items-center justify-content-md-end gap-2 mt-3 mt-md-0">
+            <span class="small text-muted me-2">Preset Clusters:</span>
+            <button type="button" class="btn btn-outline-warning text-dark btn-sm fw-semibold" onclick="setK(3)">K=3</button>
+            <button type="button" class="btn btn-warning text-dark btn-sm fw-semibold" onclick="setK(4)">K=4 (Default)</button>
+            <button type="button" class="btn btn-outline-warning text-dark btn-sm fw-semibold" onclick="setK(5)">K=5</button>
+        </div>
+    </div>
+</div>
+
+<!-- Metrics & Clusters Grid -->
+<div class="row g-4 mb-4" id="clusterSummariesContainer">
+    <!-- Populated by JS -->
+</div>
+
+<!-- Visualization Charts Row -->
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-nodes text-warning me-2"></i> Customer Cluster Distribution (2D PCA Projection)</h5>
+            <div style="height: 320px;">
+                <canvas id="clusterScatterChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0"><i class="fa-solid fa-chart-line text-warning me-2"></i> Elbow Method (Optimal K)</h5>
+                <span class="badge bg-light text-dark font-monospace border" id="wssVal">WSS: 452.1</span>
+            </div>
+            <p class="small text-muted mb-3">Total Within-Cluster Sum of Squares (WSS) per K value. The "elbow" bend indicates optimal cluster partition.</p>
+            <div style="height: 250px;">
+                <canvas id="elbowChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let scatterChart = null;
+    let elbowChart = null;
+    const clusterColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#64748b', '#ef4444'];
+
+    function setK(k) {
+        document.getElementById('kInput').value = k;
+        updateKMeans();
+    }
+
+    function updateKMeans() {
+        const k = parseInt(document.getElementById('kInput').value);
+        document.getElementById('kVal').innerText = k;
+
+        fetch('/api/kmeans', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ k: k })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('wssVal').innerText = 'WSS: ' + data.total_wss;
+
+            // Render Summary Cards
+            let cardsHtml = '';
+            data.cluster_summaries.forEach((c, idx) => {
+                const color = clusterColors[idx % clusterColors.length];
+                cardsHtml += `
+                <div class="col-md-6 col-lg-3">
+                    <div class="card border-0 shadow-sm rounded-4 p-3 h-100" style="border-top: 4px solid ${color} !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold" style="color: ${color};">${c.ClusterID}</span>
+                            <span class="badge bg-light text-dark font-monospace">${c.Count} users (${c.Percentage}%)</span>
+                        </div>
+                        <ul class="list-unstyled small text-muted mb-0">
+                            <li><i class="fa-solid fa-user me-2"></i> Avg Age: <strong>${c.AvgAge} yrs</strong></li>
+                            <li><i class="fa-solid fa-wallet me-2"></i> Annual Income: <strong>$${c.AvgIncome}k</strong></li>
+                            <li><i class="fa-solid fa-cart-shopping me-2"></i> Spend Score: <strong>${c.AvgSpendingScore} / 100</strong></li>
+                            <li><i class="fa-solid fa-arrow-rotate-right me-2"></i> Visit Freq: <strong>${c.AvgVisits} / mo</strong></li>
+                        </ul>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('clusterSummariesContainer').innerHTML = cardsHtml;
+
+            // Render Scatter Plot
+            renderScatterChart(data.scatter_points, k);
+
+            // Render Elbow Chart
+            renderElbowChart(data.elbow_data, k);
+        });
+    }
+
+    function renderScatterChart(points, activeK) {
+        const ctx = document.getElementById('clusterScatterChart').getContext('2d');
+        const datasets = [];
+
+        for (let i = 1; i <= activeK; i++) {
+            const clusterPoints = points.filter(p => p.cluster === `Cluster ${i}`);
+            datasets.push({
+                label: `Cluster ${i}`,
+                data: clusterPoints.map(p => ({ x: p.x, y: p.y, income: p.income, spending: p.spending })),
+                backgroundColor: clusterColors[(i - 1) % clusterColors.length],
+                pointRadius: 6,
+                pointHoverRadius: 9
+            });
+        }
+
+        if (scatterChart) scatterChart.destroy();
+
+        scatterChart = new Chart(ctx, {
+            type: 'scatter',
+            data: { datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const raw = ctx.raw;
+                                return `Income: $${raw.income}k, Spend Score: ${raw.spending}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Principal Component 1 (Income/Visits Variance)' } },
+                    y: { title: { display: true, text: 'Principal Component 2 (Spending Score Variance)' } }
+                }
+            }
+        });
+    }
+
+    function renderElbowChart(elbowData, activeK) {
+        const ctx = document.getElementById('elbowChart').getContext('2d');
+        const ks = elbowData.map(e => 'K=' + e.k);
+        const wss = elbowData.map(e => e.wss);
+        const pointBackgrounds = elbowData.map(e => e.k === activeK ? '#ef4444' : '#f59e0b');
+        const pointRadii = elbowData.map(e => e.k === activeK ? 8 : 4);
+
+        if (elbowChart) elbowChart.destroy();
+
+        elbowChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ks,
+                datasets: [{
+                    label: 'Within-Cluster Sum of Squares (WSS)',
+                    data: wss,
+                    borderColor: '#f59e0b',
+                    pointBackgroundColor: pointBackgrounds,
+                    pointRadius: pointRadii,
+                    fill: false,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', updateKMeans);
+</script>
+{% endblock %}

@@ -1,0 +1,21 @@
+PropertyID,Address,SquareFeet,Bedrooms,Bathrooms,AgeYears,LocationScore,CrimeRate,SchoolRating,WalkScore,Price,CapRate,DealApproved,MarketTier
+P-101,104 Grand Ave,1400,2,1.5,15,6.5,3.2,7.0,65,245000,6.2,0,Moderate Growth
+P-102,512 Highland Dr,1600,3,2.0,10,7.0,2.8,7.5,70,312000,6.8,1,Stable Cashflow
+P-103,88 Oak Lane,1700,3,2.0,12,7.2,2.5,8.0,72,330000,7.1,1,Stable Cashflow
+P-104,220 Maple St,1875,3,2.5,8,8.1,1.9,8.5,80,385000,7.5,1,High Growth Luxury
+P-105,45 Pine Rd,1100,2,1.0,25,5.5,4.5,5.5,50,195000,5.1,0,Value Add Fixer
+P-106,901 Riverway,2100,4,3.0,5,8.5,1.5,9.0,85,445000,8.0,1,High Growth Luxury
+P-107,330 Sunset Blvd,2400,4,3.0,3,9.0,1.2,9.2,90,520000,8.4,1,High Growth Luxury
+P-108,705 Ocean Ave,2600,4,3.5,2,9.2,1.0,9.5,95,575000,8.8,1,High Growth Luxury
+P-109,12 Elm St,1300,2,1.5,18,6.0,3.8,6.2,58,225000,5.8,0,Value Add Fixer
+P-110,402 Cedar Ct,1550,3,2.0,14,6.8,3.0,7.2,68,290000,6.5,1,Stable Cashflow
+P-111,810 Beacon Hill,2000,3,2.5,7,8.0,2.0,8.4,78,410000,7.8,1,High Growth Luxury
+P-112,650 Park Place,2250,4,2.5,6,8.4,1.7,8.8,82,460000,8.1,1,High Growth Luxury
+P-113,315 College Ave,1450,3,1.5,16,6.2,3.5,6.5,62,260000,6.0,0,Moderate Growth
+P-114,1001 Skyline Blvd,2750,5,4.0,1,9.5,0.8,9.8,98,620000,9.1,1,High Growth Luxury
+P-115,80 Main St,1200,2,1.0,20,5.8,4.1,5.8,55,210000,5.4,0,Value Add Fixer
+P-116,420 Forest Dr,1800,3,2.0,9,7.5,2.2,7.8,75,360000,7.3,1,Stable Cashflow
+P-117,530 Valley Rd,1950,3,2.5,11,7.8,2.1,8.1,76,375000,7.4,1,Stable Cashflow
+P-118,720 Summit Ave,2300,4,3.0,4,8.8,1.4,9.1,88,485000,8.3,1,High Growth Luxury
+P-119,1120 Bayview Way,2850,5,4.0,2,9.6,0.6,9.9,99,650000,9.3,1,High Growth Luxury
+P-120,240 Chestnut St,1650,3,2.0,13,7.1,2.7,7.4,69,305000,6.7,1,Stable Cashflow

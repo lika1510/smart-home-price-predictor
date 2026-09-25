@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Market Tiers & Portfolio | PropIntel AI Real Estate Intelligence{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h3 class="fw-bold m-0 text-dark"><i class="fa-solid fa-layer-group text-success me-2"></i> Real Estate Portfolio & Market Tier Breakdown</h3>
+        <p class="text-muted small m-0">Explore properties automatically segmented into investment market tiers and risk profiles</p>
+    </div>
+    
+    <!-- Interactive Search & Sort Bar -->
+    <div class="d-flex align-items-center gap-2">
+        <input type="text" class="form-control form-control-sm rounded-pill" id="portSearch" placeholder="🔍 Search property..." style="width: 220px;" onkeyup="filterPortfolio()">
+        <select class="form-select form-select-sm rounded-pill" id="tierFilter" onchange="filterPortfolio()" style="width: 200px;">
+            <option value="all">All Market Tiers</option>
+            <option value="Luxury">High Growth Luxury</option>
+            <option value="Cashflow">Stable Cashflow</option>
+            <option value="Urban">Moderate Urban</option>
+            <option value="Fixer">Value-Add Opportunity</option>
+        </select>
+    </div>
+</div>
+
+<!-- Portfolio Cards Grid -->
+<div class="row g-4 mb-4" id="portfolioGrid">
+    {% for item in portfolio %}
+    <div class="col-md-6 col-lg-4 port-card-col" data-tier="{{ item.MarketTier }}" data-address="{{ item.Address }}">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100 stat-card border-top border-4 border-{{ item.BadgeColor }}">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                    <h5 class="fw-bold text-dark mb-0">{{ item.Address }}</h5>
+                    <span class="small text-muted font-monospace">{{ item.PropertyID }}</span>
+                </div>
+                <span class="badge bg-{{ item.BadgeColor }} px-2 py-1 small fw-bold">{{ item.Recommendation }}</span>
+            </div>
+
+            <div class="my-3">
+                <span class="text-uppercase small fw-bold text-muted">Fair Market Value</span>
+                <h3 class="fw-bold text-primary mb-0">${{ "{:,.0f}".format(item.EstimatedPrice) }}</h3>
+                <small class="text-muted">{{ item.SquareFeet }} sqft • Cap Rate Yield: {{ item.CapRate }}%</small>
+            </div>
+
+            <div class="border-top pt-3 mt-auto">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Market Tier:</span>
+                    <strong class="text-dark">{{ item.MarketTier }}</strong>
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                    <span class="text-muted">Growth Index:</span>
+                    <strong class="text-primary font-monospace">{{ item.GrowthIndex }} / 100</strong>
+                </div>
+                <div class="d-flex justify-content-between small">
+                    <span class="text-muted">Volatility Index:</span>
+                    <strong class="text-warning font-monospace">{{ item.VolatilityIndex }} / 100</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function filterPortfolio() {
+        const query = document.getElementById('portSearch').value.toLowerCase();
+        const tier = document.getElementById('tierFilter').value;
+        const cols = document.querySelectorAll('.port-card-col');
+
+        cols.forEach(col => {
+            const address = col.getAttribute('data-address').toLowerCase();
+            const colTier = col.getAttribute('data-tier');
+
+            const matchesQuery = address.includes(query);
+            const matchesTier = (tier === 'all' || colTier.includes(tier));
+
+            if (matchesQuery && matchesTier) {
+                col.style.display = '';
+            } else {
+                col.style.display = 'none';
+            }
+        });
+    }
+</script>
+{% endblock %}

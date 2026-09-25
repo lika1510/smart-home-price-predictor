@@ -1,0 +1,236 @@
+{% extends 'base.html' %}
+
+{% block title %}Linear Regression | Real Estate Price Estimator (R Language){% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="algo-tag tag-supervised"><i class="fa-solid fa-bolt me-1"></i> Supervised Learning</span>
+            <span class="badge bg-primary">R `lm()` Model</span>
+        </div>
+        <h3 class="fw-bold m-0 text-dark"><i class="fa-solid fa-house-chimney text-primary me-2"></i> Real Estate Valuation Solver</h3>
+        <p class="text-muted small m-0">Predict property market value based on physical attributes using R Ordinary Least Squares (OLS) Linear Regression</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-dark" onclick="showRCodeModal('linear')">
+            <i class="fa-brands fa-r-project me-1 text-info"></i> View R Script
+        </button>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Interactive Input Panel -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-primary me-2"></i> Interactive Property Inputs</h5>
+            <form id="linearForm">
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Square Feet:</span> <span class="range-val" id="sqftVal">1800</span> sqft
+                    </label>
+                    <input type="range" class="form-range" id="sqftInput" min="800" max="3500" step="50" value="1800" oninput="updatePredict()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Bedrooms:</span> <span class="range-val" id="bedVal">3</span>
+                    </label>
+                    <input type="range" class="form-range" id="bedInput" min="1" max="6" step="1" value="3" oninput="updatePredict()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Bathrooms:</span> <span class="range-val" id="bathVal">2.0</span>
+                    </label>
+                    <input type="range" class="form-range" id="bathInput" min="1.0" max="4.5" step="0.5" value="2.0" oninput="updatePredict()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Property Age:</span> <span class="range-val" id="ageVal">10</span> years
+                    </label>
+                    <input type="range" class="form-range" id="ageInput" min="0" max="40" step="1" value="10" oninput="updatePredict()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Location Score (1-10):</span> <span class="range-val" id="locVal">7.5</span>
+                    </label>
+                    <input type="range" class="form-range" id="locInput" min="1.0" max="10.0" step="0.1" value="7.5" oninput="updatePredict()">
+                </div>
+
+                <button type="button" class="btn btn-primary w-100 rounded-3 py-2 fw-semibold" onclick="updatePredict()">
+                    <i class="fa-solid fa-calculator me-1"></i> Re-Calculate Valuation
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Output & Analytics Panel -->
+    <div class="col-lg-8">
+        <!-- Result Highlight Header -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-gradient text-white" style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <span class="text-uppercase small fw-bold opacity-75">Estimated Property Market Value</span>
+                    <h1 class="display-5 fw-bold my-1" id="predVal">$385,420</h1>
+                    <p class="small mb-0 opacity-90">
+                        <i class="fa-solid fa-shield-halved me-1"></i> 95% Confidence Interval: <strong id="confVal">$362,100 - $408,740</strong>
+                    </p>
+                </div>
+                <div class="col-md-5 border-start border-white border-opacity-25 ps-md-4 mt-3 mt-md-0">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small opacity-75">R-Squared (R²):</span>
+                        <strong class="font-monospace" id="r2Val">0.9421</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="small opacity-75">Adj R-Squared:</span>
+                        <strong class="font-monospace" id="adjR2Val">0.9310</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-0">
+                        <span class="small opacity-75">Root Mean Sq Error:</span>
+                        <strong class="font-monospace" id="rmseVal">$14,250</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coefficient Breakdown Table -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-table-list text-primary me-2"></i> R Regression Coefficients & Feature Impact</h5>
+            <div class="table-responsive">
+                <table class="table custom-table">
+                    <thead>
+                        <tr>
+                            <th>Feature Name</th>
+                            <th>R Coefficient (β)</th>
+                            <th>Std. Error</th>
+                            <th>t-Value</th>
+                            <th>Interpretation Impact</th>
+                        </tr>
+                    </thead>
+                    <tbody id="coefTableBody">
+                        <tr><td colspan="5" class="text-center">Loading model coefficients...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Residual Chart -->
+        <div class="card border-0 shadow-sm rounded-4 p-4">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-line text-primary me-2"></i> Actual vs Predicted House Prices (Residual Analysis)</h5>
+            <div style="height: 280px;">
+                <canvas id="residualChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let residualChart = null;
+
+    function updatePredict() {
+        const sqft = parseFloat(document.getElementById('sqftInput').value);
+        const bed = parseInt(document.getElementById('bedInput').value);
+        const bath = parseFloat(document.getElementById('bathInput').value);
+        const age = parseInt(document.getElementById('ageInput').value);
+        const loc = parseFloat(document.getElementById('locInput').value);
+
+        document.getElementById('sqftVal').innerText = sqft;
+        document.getElementById('bedVal').innerText = bed;
+        document.getElementById('bathVal').innerText = bath;
+        document.getElementById('ageVal').innerText = age;
+        document.getElementById('locVal').innerText = loc;
+
+        fetch('/api/linear-regression', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                SquareFeet: sqft,
+                Bedrooms: bed,
+                Bathrooms: bath,
+                AgeYears: age,
+                LocationScore: loc
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('predVal').innerText = '$' + data.single_prediction.toLocaleString();
+            document.getElementById('confVal').innerText = `$${data.conf_low.toLocaleString()} - $${data.conf_high.toLocaleString()}`;
+            document.getElementById('r2Val').innerText = data.r2;
+            document.getElementById('adjR2Val').innerText = data.adj_r2;
+            document.getElementById('rmseVal').innerText = '$' + data.rmse.toLocaleString();
+
+            // Populate Coefficient Table
+            let tbody = '';
+            data.coef_table.forEach(row => {
+                tbody += `<tr>
+                    <td class="fw-bold">${row.Feature}</td>
+                    <td class="font-monospace text-primary">${row.Estimate > 0 ? '+' : ''}${row.Estimate}</td>
+                    <td class="text-muted font-monospace">${row.StdError}</td>
+                    <td class="font-monospace">${row.tValue}</td>
+                    <td><span class="badge ${row.Estimate >= 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'}">${row.Impact}</span></td>
+                </tr>`;
+            });
+            document.getElementById('coefTableBody').innerHTML = tbody;
+
+            // Render Residual Chart
+            renderChart(data.residual_data);
+        });
+    }
+
+    function renderChart(residualData) {
+        const ctx = document.getElementById('residualChart').getContext('2d');
+        const labels = residualData.map(d => d.sqft + ' sqft');
+        const actuals = residualData.map(d => d.actual);
+        const preds = residualData.map(d => d.predicted);
+
+        if (residualChart) residualChart.destroy();
+
+        residualChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Actual Price ($)',
+                        data: actuals,
+                        borderColor: '#2563eb',
+                        backgroundColor: '#2563eb',
+                        pointStyle: 'circle',
+                        pointRadius: 6,
+                        showLine: false
+                    },
+                    {
+                        label: 'R Model Prediction ($)',
+                        data: preds,
+                        borderColor: '#10b981',
+                        borderWidth: 2,
+                        fill: false,
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' }
+                },
+                scales: {
+                    y: {
+                        ticks: {
+                            callback: value => '$' + (value/1000) + 'k'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', updatePredict);
+</script>
+{% endblock %}

@@ -1,0 +1,420 @@
+{% extends 'base.html' %}
+
+{% block title %}Interactive Deal Evaluator | PropIntel AI Intelligence{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h3 class="fw-bold m-0 text-dark"><i class="fa-solid fa-calculator text-primary me-2"></i> Real Estate Deal & Investment Evaluator</h3>
+        <p class="text-muted small m-0">Simulate property valuation, financial cashflow, renovation upgrades, and deal risk in real-time</p>
+    </div>
+    <!-- Quick Scenario Presets -->
+    <div class="d-flex align-items-center gap-2">
+        <span class="small text-muted me-1">Quick Presets:</span>
+        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill font-monospace" onclick="loadPreset('luxury')"><i class="fa-solid fa-gem me-1"></i> Luxury Estate</button>
+        <button type="button" class="btn btn-outline-success btn-sm rounded-pill font-monospace" onclick="loadPreset('suburban')"><i class="fa-solid fa-house me-1"></i> Suburban Family</button>
+        <button type="button" class="btn btn-outline-warning text-dark btn-sm rounded-pill font-monospace" onclick="loadPreset('fixer')"><i class="fa-solid fa-hammer me-1"></i> Fixer Upper</button>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Interactive Inputs Column -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-sliders text-primary me-2"></i> Property Inputs</h5>
+            <form id="evalForm">
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Square Feet:</span> <span class="range-val" id="sqftVal">1800</span> sqft
+                    </label>
+                    <input type="range" class="form-range" id="sqftInput" min="800" max="3500" step="50" value="1800" oninput="runEvaluation()">
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Bedrooms:</label>
+                        <input type="number" class="form-control rounded-3" id="bedInput" min="1" max="8" value="3" onchange="runEvaluation()">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Bathrooms:</label>
+                        <input type="number" class="form-control rounded-3" id="bathInput" min="1" max="6" step="0.5" value="2.0" onchange="runEvaluation()">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Property Age:</span> <span class="range-val" id="ageVal">10</span> yrs
+                    </label>
+                    <input type="range" class="form-range" id="ageInput" min="0" max="40" step="1" value="10" oninput="runEvaluation()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Location Rating (1-10):</span> <span class="range-val" id="locVal">7.5</span>
+                    </label>
+                    <input type="range" class="form-range" id="locInput" min="1.0" max="10.0" step="0.1" value="7.5" oninput="runEvaluation()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>School Rating:</span> <span class="range-val" id="schoolVal">8.0</span> / 10
+                    </label>
+                    <input type="range" class="form-range" id="schoolInput" min="1.0" max="10.0" step="0.1" value="8.0" oninput="runEvaluation()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Walkability Score:</span> <span class="range-val" id="walkVal">75</span> / 100
+                    </label>
+                    <input type="range" class="form-range" id="walkInput" min="10" max="100" step="5" value="75" oninput="runEvaluation()">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Target Cap Rate Yield:</span> <span class="range-val" id="capVal">7.2</span>%
+                    </label>
+                    <input type="range" class="form-range" id="capInput" min="3.0" max="12.0" step="0.1" value="7.2" oninput="runEvaluation()">
+                </div>
+            </form>
+        </div>
+
+        <!-- Interactive What-If Value-Add Renovation Simulator -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 sim-box mb-4">
+            <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-wand-magic-sparkles text-primary me-2"></i> What-If Value-Add Simulator</h6>
+            <p class="small text-muted mb-3">Toggle renovation upgrades to simulate instant valuation and yield boosts:</p>
+
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="renovKitchen" onchange="runEvaluation()">
+                <label class="form-check-label small fw-semibold" for="renovKitchen">
+                    🔨 Kitchen & Bath Luxury Modernization (+Location Boost)
+                </label>
+            </div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" id="renovSchool" onchange="runEvaluation()">
+                <label class="form-check-label small fw-semibold" for="renovSchool">
+                    🎓 Submarket School Charter Approval (+1.5 School Rating)
+                </label>
+            </div>
+            <div class="form-check form-switch mb-0">
+                <input class="form-check-input" type="checkbox" id="renovSecurity" onchange="runEvaluation()">
+                <label class="form-check-label small fw-semibold" for="renovSecurity">
+                    🛡️ Smart Security & Gated Perimeter (-1.0 Crime Rate)
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results & Analytics Column -->
+    <div class="col-lg-8">
+        <!-- Interactive Decision Banner -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 text-white animate-num" id="decisionHeaderCard" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+            <div class="row align-items-center">
+                <div class="col-md-7">
+                    <span class="text-uppercase small fw-bold opacity-75">Automated Risk & Acquisition Decision</span>
+                    <h1 class="display-4 fw-bold my-1" id="recText">STRONG BUY</h1>
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <span class="badge bg-white text-dark px-3 py-2 fw-bold" id="riskBadge">LOW RISK</span>
+                        <span class="small opacity-90"><i class="fa-solid fa-circle-check me-1"></i> Pre-Approved Deal Parameters</span>
+                    </div>
+                </div>
+                <div class="col-md-5 border-start border-white border-opacity-25 ps-md-4 mt-3 mt-md-0 text-md-end">
+                    <span class="small opacity-75 d-block">Approval Probability Score</span>
+                    <h2 class="display-5 fw-bold font-monospace my-1" id="probScore">88.5%</h2>
+                    <span class="badge bg-white bg-opacity-25 text-white fs-6 font-monospace" id="marketTierText">High Growth Luxury Tier</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric Details Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                    <span class="text-uppercase small fw-bold text-muted">Automated Fair Valuation</span>
+                    <h2 class="fw-bold text-primary my-2" id="valPrice">$385,000</h2>
+                    <ul class="list-unstyled small text-muted mb-0">
+                        <li class="mb-1"><i class="fa-solid fa-chart-simple text-primary me-2"></i> Price per SqFt: <strong class="text-dark" id="priceSqft">$213.88 / sqft</strong></li>
+                        <li><i class="fa-solid fa-shield-halved text-primary me-2"></i> 95% Confidence Range: <strong class="text-dark" id="confRange">$361k - $408k</strong></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                    <span class="text-uppercase small fw-bold text-muted">Rental Income & Yield</span>
+                    <h2 class="fw-bold text-success my-2" id="monthlyRent">$2,310 / mo</h2>
+                    <ul class="list-unstyled small text-muted mb-0">
+                        <li class="mb-1"><i class="fa-solid fa-coins text-success me-2"></i> Gross Annual Rent: <strong class="text-dark" id="annualRent">$27,720 / yr</strong></li>
+                        <li><i class="fa-solid fa-percent text-success me-2"></i> Cap Rate Return: <strong class="text-dark" id="capRateDisplay">7.2%</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Interactive Mortgage & Net Cashflow Calculator -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0"><i class="fa-solid fa-sack-dollar text-success me-2"></i> Interactive Financing & Cashflow Calculator</h5>
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">Real-Time Loan Simulator</span>
+            </div>
+            
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Down Payment (%):</label>
+                    <input type="range" class="form-range" id="downPctInput" min="5" max="50" step="5" value="20" oninput="updateMortgage()">
+                    <span class="small font-monospace text-primary fw-bold" id="downPctVal">20% Down</span>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Mortgage Rate (%):</label>
+                    <input type="range" class="form-range" id="interestRateInput" min="4.0" max="10.0" step="0.25" value="6.5" oninput="updateMortgage()">
+                    <span class="small font-monospace text-primary fw-bold" id="interestRateVal">6.5% Interest</span>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Loan Term (Years):</label>
+                    <select class="form-select form-select-sm rounded-3" id="loanTermInput" onchange="updateMortgage()">
+                        <option value="30" selected>30-Year Fixed Mortgage</option>
+                        <option value="15">15-Year Fixed Mortgage</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Cashflow Breakdown Alert -->
+            <div class="p-3 bg-light rounded-3 border">
+                <div class="row text-center align-items-center">
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <span class="small text-muted d-block">Est. Monthly Mortgage</span>
+                        <strong class="fs-5 text-dark font-monospace" id="monthlyMortgage">$1,946 / mo</strong>
+                    </div>
+                    <div class="col-md-4 mb-2 mb-md-0">
+                        <span class="small text-muted d-block">Net Cashflow</span>
+                        <strong class="fs-4 text-success font-monospace" id="netCashflow">+$364 / mo</strong>
+                    </div>
+                    <div class="col-md-4">
+                        <span class="small text-muted d-block">Cash-on-Cash Return</span>
+                        <strong class="fs-5 text-primary font-monospace" id="cocReturn">5.67%</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radar Analysis & Composite Indices -->
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-compass-drafting text-primary me-2"></i> Deal Metric Radar Diagnostics</h5>
+                    <div style="height: 220px;">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+                    <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-pie text-primary me-2"></i> Composite Neighborhood Indices</h5>
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-semibold text-dark small">Growth Index:</span>
+                            <strong class="text-primary font-monospace" id="growthIdx">78.5 / 100</strong>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-primary" id="growthBar" style="width: 78.5%;"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="fw-semibold text-dark small">Volatility Index:</span>
+                            <strong class="text-warning font-monospace" id="volIdx">24.1 / 100</strong>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-warning" id="volBar" style="width: 24.1%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let radarChart = null;
+    let currentData = null;
+
+    function loadPreset(type) {
+        if (type === 'luxury') {
+            document.getElementById('sqftInput').value = 2600;
+            document.getElementById('bedInput').value = 4;
+            document.getElementById('bathInput').value = 3.5;
+            document.getElementById('ageInput').value = 2;
+            document.getElementById('locInput').value = 9.2;
+            document.getElementById('schoolInput').value = 9.5;
+            document.getElementById('walkInput').value = 90;
+            document.getElementById('capInput').value = 8.8;
+        } else if (type === 'suburban') {
+            document.getElementById('sqftInput').value = 1800;
+            document.getElementById('bedInput').value = 3;
+            document.getElementById('bathInput').value = 2.0;
+            document.getElementById('ageInput').value = 10;
+            document.getElementById('locInput').value = 7.5;
+            document.getElementById('schoolInput').value = 8.0;
+            document.getElementById('walkInput').value = 75;
+            document.getElementById('capInput').value = 7.2;
+        } else if (type === 'fixer') {
+            document.getElementById('sqftInput').value = 1200;
+            document.getElementById('bedInput').value = 2;
+            document.getElementById('bathInput').value = 1.0;
+            document.getElementById('ageInput').value = 28;
+            document.getElementById('locInput').value = 5.5;
+            document.getElementById('schoolInput').value = 5.5;
+            document.getElementById('walkInput').value = 50;
+            document.getElementById('capInput').value = 5.1;
+        }
+        runEvaluation();
+    }
+
+    function runEvaluation() {
+        const sqft = parseFloat(document.getElementById('sqftInput').value);
+        const bed = parseInt(document.getElementById('bedInput').value);
+        const bath = parseFloat(document.getElementById('bathInput').value);
+        const age = parseInt(document.getElementById('ageInput').value);
+        
+        let loc = parseFloat(document.getElementById('locInput').value);
+        let school = parseFloat(document.getElementById('schoolInput').value);
+        let crime = 2.2;
+
+        // Apply Renovation What-If Toggles
+        if (document.getElementById('renovKitchen').checked) loc = Math.min(10, loc + 0.8);
+        if (document.getElementById('renovSchool').checked) school = Math.min(10, school + 1.5);
+        if (document.getElementById('renovSecurity').checked) crime = Math.max(0.5, crime - 1.0);
+
+        const walk = parseInt(document.getElementById('walkInput').value);
+        const cap = parseFloat(document.getElementById('capInput').value);
+
+        document.getElementById('sqftVal').innerText = sqft;
+        document.getElementById('ageVal').innerText = age;
+        document.getElementById('locVal').innerText = loc.toFixed(1);
+        document.getElementById('schoolVal').innerText = school.toFixed(1);
+        document.getElementById('walkVal').innerText = walk;
+        document.getElementById('capVal').innerText = cap;
+
+        fetch('/api/evaluate', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                SquareFeet: sqft,
+                Bedrooms: bed,
+                Bathrooms: bath,
+                AgeYears: age,
+                LocationScore: loc,
+                SchoolRating: school,
+                CrimeRate: crime,
+                WalkScore: walk,
+                CapRate: cap
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
+            currentData = data;
+            document.getElementById('recText').innerText = data.recommendation;
+            document.getElementById('riskBadge').innerText = data.risk_rating;
+            document.getElementById('probScore').innerText = data.approval_prob + '%';
+            document.getElementById('marketTierText').innerText = data.market_tier;
+
+            const headerCard = document.getElementById('decisionHeaderCard');
+            if (data.badge_color === 'success') {
+                headerCard.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            } else if (data.badge_color === 'warning') {
+                headerCard.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+            } else {
+                headerCard.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+            }
+
+            document.getElementById('valPrice').innerText = '$' + data.estimated_price.toLocaleString();
+            document.getElementById('priceSqft').innerText = '$' + data.price_per_sqft.toLocaleString() + ' / sqft';
+            document.getElementById('confRange').innerText = `$${(data.conf_low/1000).toFixed(0)}k - $${(data.conf_high/1000).toFixed(0)}k`;
+
+            document.getElementById('monthlyRent').innerText = '$' + data.monthly_rent.toLocaleString() + ' / mo';
+            document.getElementById('annualRent').innerText = '$' + data.annual_gross_rent.toLocaleString() + ' / yr';
+            document.getElementById('capRateDisplay').innerText = cap + '%';
+
+            document.getElementById('growthIdx').innerText = data.neighborhood_growth_index + ' / 100';
+            document.getElementById('growthBar').style.width = data.neighborhood_growth_index + '%';
+            document.getElementById('volIdx').innerText = data.market_volatility_index + ' / 100';
+            document.getElementById('volBar').style.width = data.market_volatility_index + '%';
+
+            updateMortgage();
+            renderRadarChart(data);
+        });
+    }
+
+    function updateMortgage() {
+        if (!currentData) return;
+
+        const downPct = parseFloat(document.getElementById('downPctInput').value);
+        const rate = parseFloat(document.getElementById('interestRateInput').value);
+        const years = parseInt(document.getElementById('loanTermInput').value);
+
+        document.getElementById('downPctVal').innerText = downPct + '% Down';
+        document.getElementById('interestRateVal').innerText = rate + '% Interest';
+
+        const price = currentData.estimated_price;
+        const downAmt = price * (downPct / 100);
+        const loanAmt = price - downAmt;
+
+        const monthlyRate = (rate / 100) / 12;
+        const totalPayments = years * 12;
+
+        const monthlyMortgage = (loanAmt * monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
+        const grossRent = currentData.monthly_rent;
+        const netCashflow = grossRent - monthlyMortgage;
+
+        const annualCashflow = netCashflow * 12;
+        const cocReturn = (annualCashflow / downAmt) * 100;
+
+        document.getElementById('monthlyMortgage').innerText = '$' + Math.round(monthlyMortgage).toLocaleString() + ' / mo';
+        
+        const netElem = document.getElementById('netCashflow');
+        if (netCashflow >= 0) {
+            netElem.className = 'fs-4 text-success font-monospace';
+            netElem.innerText = '+$' + Math.round(netCashflow).toLocaleString() + ' / mo';
+        } else {
+            netElem.className = 'fs-4 text-danger font-monospace';
+            netElem.innerText = '-$' + Math.abs(Math.round(netCashflow)).toLocaleString() + ' / mo';
+        }
+
+        document.getElementById('cocReturn').innerText = cocReturn.toFixed(2) + '%';
+    }
+
+    function renderRadarChart(data) {
+        const ctx = document.getElementById('radarChart').getContext('2d');
+        const loc = parseFloat(document.getElementById('locInput').value) * 10;
+        const school = parseFloat(document.getElementById('schoolInput').value) * 10;
+        const walk = parseInt(document.getElementById('walkInput').value);
+        const yieldScore = Math.min(100, parseFloat(document.getElementById('capInput').value) * 10);
+        const approval = data.approval_prob;
+
+        if (radarChart) radarChart.destroy();
+
+        radarChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Location', 'School', 'Walkability', 'Cap Yield', 'Approval Score'],
+                datasets: [{
+                    label: 'Deal Score Index',
+                    data: [loc, school, walk, yieldScore, approval],
+                    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+                    borderColor: '#2563eb',
+                    borderWidth: 2,
+                    pointBackgroundColor: '#2563eb'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { r: { min: 0, max: 100, ticks: { display: false } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', runEvaluation);
+</script>
+{% endblock %}

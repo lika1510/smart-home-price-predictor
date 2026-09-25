@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+
+{% block title %}PCA Analysis | Financial Asset Diagnostics (R Language){% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="algo-tag tag-unsupervised"><i class="fa-solid fa-diagram-project me-1"></i> Unsupervised Learning</span>
+            <span class="badge bg-info text-white">R `prcomp()` Model</span>
+        </div>
+        <h3 class="fw-bold m-0 text-dark"><i class="fa-solid fa-sliders text-info me-2"></i> Financial Asset Multi-Metric PCA Diagnostics</h3>
+        <p class="text-muted small m-0">Compress high-dimensional asset risk metrics down to uncorrelated principal components using R Orthogonal Decomposition</p>
+    </div>
+    <div>
+        <button class="btn btn-outline-dark" onclick="showRCodeModal('pca')">
+            <i class="fa-brands fa-r-project me-1 text-info"></i> View R Script
+        </button>
+    </div>
+</div>
+
+<!-- Variance Summary Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-white bg-gradient" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);">
+            <span class="text-uppercase small fw-bold opacity-75">PC1 Variance Retained</span>
+            <h2 class="display-6 fw-bold my-1" id="pc1Var">68.4%</h2>
+            <p class="small mb-0 opacity-90">Captures primary valuation & growth momentum factor</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-white bg-gradient" style="background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);">
+            <span class="text-uppercase small fw-bold opacity-75">PC2 Variance Retained</span>
+            <h2 class="display-6 fw-bold my-1" id="pc2Var">18.2%</h2>
+            <p class="small mb-0 opacity-90">Captures leverage & risk volatility factor</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-white bg-gradient" style="background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);">
+            <span class="text-uppercase small fw-bold opacity-75">Cumulative PC1 + PC2</span>
+            <h2 class="display-6 fw-bold my-1" id="cumVar">86.6%</h2>
+            <p class="small mb-0 opacity-90">Total dataset variance preserved in 2 dimensions</p>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-column text-info me-2"></i> Scree Plot (Variance Explained Ratio)</h5>
+            <div style="height: 280px;">
+                <canvas id="screeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <h5 class="fw-bold mb-3"><i class="fa-solid fa-circle-dot text-info me-2"></i> PCA Biplot (Asset Scores PC1 vs PC2)</h5>
+            <div style="height: 280px;">
+                <canvas id="biplotChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Matrix Table -->
+<div class="card border-0 shadow-sm rounded-4 p-4">
+    <h5 class="fw-bold mb-3"><i class="fa-solid fa-table text-info me-2"></i> R Eigenvector Loadings Matrix (Feature Contributions)</h5>
+    <div class="table-responsive">
+        <table class="table custom-table">
+            <thead>
+                <tr>
+                    <th>Original Feature Metric</th>
+                    <th>PC1 Weight (Growth)</th>
+                    <th>PC2 Weight (Risk)</th>
+                    <th>PC3 Weight (Margin)</th>
+                    <th>Primary Factor Orientation</th>
+                </tr>
+            </thead>
+            <tbody id="pcaLoadingTableBody">
+                <tr><td colspan="5" class="text-center">Loading PCA eigenvectors...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let screeChart = null;
+    let biplotChart = null;
+
+    function loadPCA() {
+        fetch('/api/pca', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.scree_data && data.scree_data.length >= 2) {
+                document.getElementById('pc1Var').innerText = data.scree_data[0].variance_ratio + '%';
+                document.getElementById('pc2Var').innerText = data.scree_data[1].variance_ratio + '%';
+                document.getElementById('cumVar').innerText = data.scree_data[1].cumulative_ratio + '%';
+            }
+
+            // Render Loading Matrix
+            let tbody = '';
+            data.loading_table.forEach(row => {
+                const orientation = Math.abs(row.PC1) > Math.abs(row.PC2) 
+                    ? '<span class="badge bg-primary-subtle text-primary border">Dominant on PC1</span>'
+                    : '<span class="badge bg-teal-subtle text-success border">Dominant on PC2</span>';
+                tbody += `<tr>
+                    <td class="fw-bold">${row.Feature}</td>
+                    <td class="font-monospace text-primary">${row.PC1 > 0 ? '+' : ''}${row.PC1}</td>
+                    <td class="font-monospace text-success">${row.PC2 > 0 ? '+' : ''}${row.PC2}</td>
+                    <td class="font-monospace text-muted">${row.PC3 > 0 ? '+' : ''}${row.PC3}</td>
+                    <td>${orientation}</td>
+                </tr>`;
+            });
+            document.getElementById('pcaLoadingTableBody').innerHTML = tbody;
+
+            renderScreeChart(data.scree_data);
+            renderBiplotChart(data.biplot_scores);
+        });
+    }
+
+    function renderScreeChart(screeData) {
+        const ctx = document.getElementById('screeChart').getContext('2d');
+        const comps = screeData.map(d => d.component);
+        const vars = screeData.map(d => d.variance_ratio);
+        const cumVars = screeData.map(d => d.cumulative_ratio);
+
+        if (screeChart) screeChart.destroy();
+
+        screeChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: comps,
+                datasets: [
+                    {
+                        type: 'bar',
+                        label: 'Individual Variance %',
+                        data: vars,
+                        backgroundColor: '#0284c7',
+                        borderRadius: 4
+                    },
+                    {
+                        type: 'line',
+                        label: 'Cumulative Variance %',
+                        data: cumVars,
+                        borderColor: '#4f46e5',
+                        borderWidth: 2,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } }
+            }
+        });
+    }
+
+    function renderBiplotChart(scores) {
+        const ctx = document.getElementById('biplotChart').getContext('2d');
+
+        if (biplotChart) biplotChart.destroy();
+
+        biplotChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Financial Assets (PC1 vs PC2)',
+                    data: scores.map(s => ({ x: s.pc1, y: s.pc2, label: s.id })),
+                    backgroundColor: '#0284c7',
+                    pointRadius: 7,
+                    pointHoverRadius: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => `${ctx.raw.label}: PC1=${ctx.raw.x}, PC2=${ctx.raw.y}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'PC1 (Valuation & Growth Axis)' } },
+                    y: { title: { display: true, text: 'PC2 (Risk & Leverage Axis)' } }
+                }
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', loadPCA);
+</script>
+{% endblock %}
